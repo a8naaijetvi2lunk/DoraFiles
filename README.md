@@ -60,7 +60,7 @@ Dora Files est une application web moderne qui permet de gérer vos fichiers FTP
 #### 1️⃣ Cloner le repository
 
 ```bash
-git clone https://github.com/yourusername/dora-files.git
+git clone https://github.com/a8naaijetvi2lunk/dora-files.git
 cd dora-files
 ```
 
@@ -190,7 +190,7 @@ Dora Files intègre plusieurs couches de sécurité :
 ### Rapporter une vulnérabilité
 
 Si vous découvrez une faille de sécurité, merci de nous la signaler à :
-📧 **security@votredomaine.com**
+📧 **noreply@yvescharvis.fr**
 
 ---
 
@@ -271,16 +271,6 @@ server {
 
 ---
 
-## 📚 Documentation
-
-- [Installation complète](docs/INSTALLATION.md)
-- [Guide de configuration](docs/CONFIGURATION.md)
-- [API Documentation](docs/API.md)
-- [Guide de sécurité](docs/SECURITY.md)
-- [FAQ](docs/FAQ.md)
-
----
-
 ## 🤝 Contribution
 
 Les contributions sont les bienvenues ! Consultez [CONTRIBUTING.md](CONTRIBUTING.md) pour plus d'informations.
@@ -297,10 +287,9 @@ Les contributions sont les bienvenues ! Consultez [CONTRIBUTING.md](CONTRIBUTING
 
 ## 🐛 Support
 
-- 📖 [Documentation](https://docs.votredomaine.com)
-- 💬 [Discord Community](https://discord.gg/votreserveur)
-- 🐛 [Issue Tracker](https://github.com/yourusername/dora-files/issues)
-- 📧 Email: support@votredomaine.com
+- 💬 [Discord Community](https://discord.gg/CXfC55vj)
+- 🐛 [Issue Tracker](https://github.com/a8naaijetvi2lunk/dora-files/issues)
+- 📧 Email: a8naaijetvi2lunk@gmail.com
 
 ---
 
@@ -335,15 +324,9 @@ Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour plus d'informations
 
 ---
 
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/dora-files&type=Date)](https://star-history.com/#yourusername/dora-files&Date)
-
----
-
 <div align="center">
 
-**Fait avec ❤️ par la communauté**
+**Fait avec ❤️**
 
 [⬆ Retour en haut](#-dora-files---ftp-to-web-bridge)
 
