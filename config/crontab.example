@@ -1,0 +1,73 @@
+# Dora Files - Crontab Configuration Example
+#
+# Installation:
+# 1. Edit this file and replace /path/to/htdocs/files.regaletoimagl.fr with actual path
+# 2. Copy entries to your crontab: crontab -e
+# 3. Verify: crontab -l
+#
+# Environment setup
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=admin@regaletoimagl.fr
+
+# ┌───────────── minute (0 - 59)
+# │ ┌───────────── hour (0 - 23)
+# │ │ ┌───────────── day of month (1 - 31)
+# │ │ │ ┌───────────── month (1 - 12)
+# │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday to Saturday)
+# │ │ │ │ │
+# * * * * * command to execute
+
+# ===================================================================
+# DAILY MAINTENANCE - 2:00 AM
+# ===================================================================
+
+# Cleanup expired links, temp files, and rate limits (2:00 AM daily)
+0 2 * * * /usr/bin/php /path/to/htdocs/files.regaletoimagl.fr/bin/cleanup.php >> /var/log/dorafiles-cleanup.log 2>&1
+
+# Cleanup old activity logs (2:15 AM daily)
+15 2 * * * /usr/bin/php /path/to/htdocs/files.regaletoimagl.fr/bin/cleanup-logs.php >> /var/log/dorafiles-logs.log 2>&1
+
+# ===================================================================
+# WEEKLY MAINTENANCE - Sunday 3:00 AM
+# ===================================================================
+
+# Database optimization (Sunday 3:00 AM)
+0 3 * * 0 /usr/bin/mysql -u DB_USER -pDB_PASS FILES-DATA -e "OPTIMIZE TABLE users, shared_links, ftp_connections, activity_logs, rate_limits;" >> /var/log/dorafiles-db-optimize.log 2>&1
+
+# ===================================================================
+# MONITORING - Every hour
+# ===================================================================
+
+# Check disk space and alert if >90% full (every hour)
+0 * * * * df -h / | awk 'NR==2 {if(substr($5,1,length($5)-1) > 90) print "Disk usage critical: "$5}' | mail -s "Disk Alert - Dora Files" admin@regaletoimagl.fr
+
+# ===================================================================
+# BACKUP (Optional) - Daily 4:00 AM
+# ===================================================================
+
+# Database backup (4:00 AM daily)
+# 0 4 * * * /usr/bin/mysqldump -u DB_USER -pDB_PASS FILES-DATA | gzip > /backup/dorafiles-$(date +\%Y\%m\%d).sql.gz
+
+# Cleanup old backups (keep 7 days)
+# 30 4 * * * find /backup/dorafiles-*.sql.gz -mtime +7 -delete
+
+# ===================================================================
+# OPTIONAL TASKS
+# ===================================================================
+
+# Generate usage statistics report (Monday 8:00 AM)
+# 0 8 * * 1 /usr/bin/php /path/to/htdocs/files.regaletoimagl.fr/bin/generate-stats-report.php
+
+# Health check (every 5 minutes)
+# */5 * * * * /usr/bin/curl -s https://files.regaletoimagl.fr/health-check.php || echo "Site down" | mail -s "Dora Files Health Check Failed" admin@regaletoimagl.fr
+
+# ===================================================================
+# NOTES
+# ===================================================================
+# - Replace /path/to/htdocs/files.regaletoimagl.fr with actual path
+# - Replace DB_USER and DB_PASS with actual database credentials
+# - Ensure PHP CLI is available: which php
+# - Test scripts manually before adding to cron
+# - Monitor cron execution: grep CRON /var/log/syslog
+# - Check output logs regularly: tail -f /var/log/dorafiles-*.log

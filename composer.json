@@ -1,0 +1,26 @@
+{
+    "name": "dorafiles/app",
+    "description": "Dora Files - FTP to Web Bridge",
+    "type": "project",
+    "require": {
+        "php": "^8.1",
+        "ext-ftp": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
+        "endroid/qr-code": "^6.0",
+        "spomky-labs/otphp": "^11.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "files": [
+            "app/helpers.php"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}

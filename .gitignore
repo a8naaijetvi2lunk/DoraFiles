@@ -1,0 +1,79 @@
+# Environment Configuration
+.env
+.env.backup
+.env.production
+.env.local
+
+# Composer
+/vendor/
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+/storage/logs/*.log
+/storage/logs/*.txt
+*.log
+
+# Temporary files
+/tmp/
+/temp/
+*.tmp
+
+# User uploads (if stored locally)
+/storage/uploads/
+/storage/files/
+
+# Session files
+/storage/sessions/
+
+# Cache
+/storage/cache/
+*.cache
+
+# Backups
+*.sql
+*.sql.gz
+*.backup
+/backups/
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Sensitive data
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Development
+/node_modules/
+npm-debug.log
+yarn-error.log
+/dist/
+/build/
+
+# Documentation (keep only source)
+CLEANUP_REPORT.md
+MIGRATION_GUIDE.md
+QUICK_START.md
+archive/
+
+# Keep these
+!.gitignore
+!.gitattributes
+!.env.example
