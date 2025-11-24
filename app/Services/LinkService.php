@@ -2,17 +2,42 @@
 
 namespace App\Services;
 
-class LinkService {
-    private $pdo;
+/**
+ * Service for managing shared download links
+ *
+ * Handles creation, verification, and management of file sharing links
+ * with support for password protection and expiration.
+ */
+class LinkService
+{
+    private \PDO $pdo;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->pdo = db();
     }
 
     /**
      * Create a new share link
+     *
+     * @param int $userId User ID
+     * @param int|null $ftpConnectionId FTP connection ID
+     * @param string $filePath File path on FTP server
+     * @param string $fileName Display file name
+     * @param int $fileSize File size in bytes
+     * @param string|null $expiresIn Expiration time (e.g., '+7 days')
+     * @param string|null $password Optional password protection
+     * @return array Link data with id, token, url, has_password
      */
-    public function createLink($userId, $ftpConnectionId, $filePath, $fileName, $fileSize, $expiresIn = null, $password = null) {
+    public function createLink(
+        int $userId,
+        ?int $ftpConnectionId,
+        string $filePath,
+        string $fileName,
+        int $fileSize,
+        ?string $expiresIn = null,
+        ?string $password = null
+    ): array {
         $token = generateToken(32);
 
         $expiresAt = null;
@@ -42,7 +67,7 @@ class LinkService {
         ]);
 
         return [
-            'id' => $this->pdo->lastInsertId(),
+            'id' => (int) $this->pdo->lastInsertId(),
             'token' => $token,
             'url' => env('APP_URL') . '/dl/' . $token,
             'has_password' => !empty($password)
@@ -50,9 +75,13 @@ class LinkService {
     }
 
     /**
-     * Get link by token
+     * Get link by token (includes FTP credentials for download)
+     *
+     * @param string $token Link token
+     * @return array|false Link data or false if not found/expired/revoked
      */
-    public function getLinkByToken($token) {
+    public function getLinkByToken(string $token): array|false
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 sl.id,
@@ -83,9 +112,14 @@ class LinkService {
     }
 
     /**
-     * Verify password for a link
+     * Verify password for a protected link
+     *
+     * @param array $link Link data
+     * @param string $password Password to verify
+     * @return bool True if password matches or no password required
      */
-    public function verifyPassword($link, $password) {
+    public function verifyPassword(array $link, string $password): bool
+    {
         if (empty($link['password_hash'])) {
             return true; // No password required
         }
@@ -94,9 +128,13 @@ class LinkService {
     }
 
     /**
-     * Get all links for user
+     * Get all links for a user
+     *
+     * @param int $userId User ID
+     * @return array List of links
      */
-    public function getUserLinks($userId) {
+    public function getUserLinks(int $userId): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT sl.*,
                    CASE WHEN sl.password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password,
@@ -112,9 +150,13 @@ class LinkService {
     }
 
     /**
-     * Increment download count
+     * Increment download count for a link
+     *
+     * @param int $linkId Link ID
+     * @return void
      */
-    public function incrementDownload($linkId) {
+    public function incrementDownload(int $linkId): void
+    {
         $stmt = $this->pdo->prepare("
             UPDATE shared_links
             SET download_count = download_count + 1,
@@ -126,9 +168,14 @@ class LinkService {
     }
 
     /**
-     * Revoke link
+     * Revoke a link (soft delete)
+     *
+     * @param int $linkId Link ID
+     * @param int $userId User ID (for authorization)
+     * @return void
      */
-    public function revokeLink($linkId, $userId) {
+    public function revokeLink(int $linkId, int $userId): void
+    {
         $stmt = $this->pdo->prepare("
             UPDATE shared_links
             SET revoked_at = NOW()
@@ -139,9 +186,14 @@ class LinkService {
     }
 
     /**
-     * Delete link
+     * Permanently delete a link
+     *
+     * @param int $linkId Link ID
+     * @param int $userId User ID (for authorization)
+     * @return void
      */
-    public function deleteLink($linkId, $userId) {
+    public function deleteLink(int $linkId, int $userId): void
+    {
         $stmt = $this->pdo->prepare("
             DELETE FROM shared_links
             WHERE id = ? AND user_id = ?

@@ -2,18 +2,30 @@
 
 namespace App\Services;
 
-class AuthService {
-    private $pdo;
+/**
+ * Service for user authentication
+ *
+ * Handles user login, logout, registration, and session management
+ * with support for 2FA and activity logging.
+ */
+class AuthService
+{
+    private \PDO $pdo;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->pdo = db();
     }
 
     /**
-     * Authenticate user
-     * Returns: true = full login, '2fa_required' = needs 2FA verification, false = failed
+     * Authenticate user with email and password
+     *
+     * @param string $email User email
+     * @param string $password User password
+     * @return bool|string True on success, '2fa_required' if 2FA needed, false on failure
      */
-    public function login($email, $password) {
+    public function login(string $email, string $password): bool|string
+    {
         $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
@@ -29,13 +41,11 @@ class AuthService {
 
         // Check if 2FA is enabled
         if ($user['two_factor_enabled'] == 1) {
-            // Store user ID in session for 2FA verification
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
             $_SESSION['2fa_user_id'] = $user['id'];
 
-            // Log 2FA required
             $activityLog = new ActivityLogService();
             $activityLog->log($user['id'], 'login_2fa_required', 'user', $email, '2FA verification required');
 
@@ -70,6 +80,9 @@ class AuthService {
 
         $_SESSION['user'] = $user;
 
+        // Regenerate session ID to prevent session fixation attacks
+        session_regenerate_id(true);
+
         // Update last login info
         $userService = new UserService();
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
@@ -83,9 +96,12 @@ class AuthService {
     }
 
     /**
-     * Logout user
+     * Logout user and destroy session
+     *
+     * @return void
      */
-    public function logout() {
+    public function logout(): void
+    {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -101,15 +117,32 @@ class AuthService {
     }
 
     /**
-     * Create new user
+     * Register a new user with FTP credentials
+     *
+     * @param string $email User email
+     * @param string $password User password
+     * @param string $ftpHost FTP server hostname
+     * @param int|string $ftpPort FTP server port
+     * @param string $ftpUsername FTP username
+     * @param string $ftpPassword FTP password
+     * @param string $ftpBasePath FTP base path
+     * @return bool True on success, false on failure
      */
-    public function register($email, $password, $ftpHost, $ftpPort, $ftpUsername, $ftpPassword, $ftpBasePath = '/') {
+    public function register(
+        string $email,
+        string $password,
+        string $ftpHost,
+        int|string $ftpPort,
+        string $ftpUsername,
+        string $ftpPassword,
+        string $ftpBasePath = '/'
+    ): bool {
         // Hash password
         $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
         // Encrypt FTP credentials
         $ftpHostEnc = encrypt($ftpHost);
-        $ftpPortEnc = encrypt($ftpPort);
+        $ftpPortEnc = encrypt((string) $ftpPort);
         $ftpUsernameEnc = encrypt($ftpUsername);
         $ftpPasswordEnc = encrypt($ftpPassword);
         $ftpBasePathEnc = encrypt($ftpBasePath);
@@ -130,15 +163,15 @@ class AuthService {
                 $ftpBasePathEnc
             ]);
 
-            $userId = $this->pdo->lastInsertId();
+            $userId = (int) $this->pdo->lastInsertId();
 
             // Create default FTP connection
             $ftpService = new FTPConnectionService();
-            $connectionId = $ftpService->createConnection(
+            $ftpService->createConnection(
                 $userId,
                 'Default Connection',
                 $ftpHost,
-                $ftpPort,
+                (int) $ftpPort,
                 $ftpUsername,
                 $ftpPassword,
                 $ftpBasePath,
@@ -151,6 +184,7 @@ class AuthService {
 
             return true;
         } catch (\PDOException $e) {
+            error_log("Registration failed for {$email}: " . $e->getMessage());
             return false;
         }
     }

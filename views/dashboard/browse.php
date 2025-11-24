@@ -1,8 +1,8 @@
 <?php $title = 'Parcourir les fichiers - Dora Files'; ?>
 <?php require __DIR__ . '/../partials/header.php'; ?>
 
-<div class="page-header">
-    <div>
+<div class="page-header page-header-flex">
+    <div class="page-header-content">
         <h2 class="page-title">Explorateur de fichiers</h2>
         <p class="page-subtitle">Parcourez et partagez vos fichiers FTP</p>
     </div>
@@ -159,8 +159,7 @@
                                 ✏️
                             </button>
                             <button onclick="confirmDelete('<?= e($file['name']) ?>', '<?= e($file['path']) ?>', 'dir')"
-                                    class="btn btn-sm"
-                                    class="btn btn-sm btn-danger-outline"
+                                    class="btn btn-sm btn-danger"
                                     title="Supprimer le dossier">
                                 🗑️
                             </button>
@@ -180,8 +179,7 @@
                                 ✏️
                             </button>
                             <button onclick="confirmDelete('<?= e($file['name']) ?>', '<?= e($file['path']) ?>', 'file')"
-                                    class="btn btn-sm"
-                                    class="btn btn-sm btn-danger-outline"
+                                    class="btn btn-sm btn-danger"
                                     title="Supprimer le fichier">
                                 🗑️
                             </button>

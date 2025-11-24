@@ -21,7 +21,13 @@ $twoFactorService = new TwoFactorService();
 $activityService = new ActivityLogService();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+    // SECURITY FIX: Add rate limiting for 2FA verification (prevent brute force)
+    $rateLimitService = new \App\Services\RateLimitService(5, 15); // 5 attempts per 15 minutes
+    $clientIP = \App\Services\RateLimitService::getClientIP();
+
+    if (!$rateLimitService->check($clientIP, '2fa_verify')) {
+        $error = 'Too many verification attempts. Please try again in 15 minutes.';
+    } elseif (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid CSRF token';
     } else {
         $code = trim($_POST['code'] ?? '');
@@ -56,7 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $user = $stmt->fetch();
 
                 if ($user) {
-                    // Set session
+                    // SECURITY FIX: Regenerate session ID to prevent session fixation
+                    session_regenerate_id(true);
+
+                    // Set session with complete user data (like AuthService does)
                     $_SESSION['user'] = [
                         'id' => $user['id'],
                         'email' => $user['email'],

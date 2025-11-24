@@ -24,6 +24,15 @@
 # Disable directory listing
 Options -Indexes
 
+# PHP Upload limits (may not work with PHP-FPM)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10G
+    php_value post_max_size 12G
+    php_value memory_limit 2G
+    php_value max_execution_time 3600
+    php_value max_input_time 3600
+</IfModule>
+
 # Protect sensitive files
 <FilesMatch "^\.">
     Require all denied

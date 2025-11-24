@@ -59,6 +59,9 @@ class SecurityMiddleware {
 
     /**
      * Validate and sanitize path to prevent directory traversal
+     *
+     * Security: Fixed vulnerability where removing patterns could create new dangerous patterns
+     * (e.g., "..../" -> "../" after one pass)
      */
     public static function validatePath($path) {
         if (empty($path)) {
@@ -71,14 +74,14 @@ class SecurityMiddleware {
         // Normalize path separators
         $path = str_replace('\\', '/', $path);
 
-        // Remove dangerous patterns with loop to prevent bypass via double encoding
-        $dangerous = ['../', '../', '..\\', '~/', './'];
-        do {
-            $before = $path;
-            foreach ($dangerous as $pattern) {
-                $path = str_replace($pattern, '', $path);
-            }
-        } while ($path !== $before); // Keep replacing until no more patterns found
+        // SECURITY FIX: Block if dangerous patterns detected instead of removing them
+        // This prevents bypass via pattern reconstruction (e.g., "....//" becoming "../")
+        if (preg_match('#(\.\.|~/)#', $path)) {
+            throw new \Exception('Invalid path: directory traversal attempt detected');
+        }
+
+        // Remove ./ references (safe to remove as they don't traverse)
+        $path = str_replace('./', '', $path);
 
         // Ensure path starts with /
         if (!empty($path) && $path[0] !== '/') {
@@ -91,6 +94,11 @@ class SecurityMiddleware {
         // Remove trailing slash unless it's root
         if ($path !== '/' && substr($path, -1) === '/') {
             $path = rtrim($path, '/');
+        }
+
+        // Final verification: ensure no path traversal remains
+        if (strpos($path, '..') !== false || strpos($path, '~') !== false) {
+            throw new \Exception('Invalid path: security validation failed');
         }
 
         return $path;
@@ -121,23 +129,48 @@ class SecurityMiddleware {
 
     /**
      * Validate password strength
+     * SECURITY FIX: Added complexity requirements
+     *
+     * @param string $password
+     * @param bool $returnErrors If true, returns array of errors instead of bool
+     * @return bool|array
      */
-    public static function validatePassword($password) {
+    public static function validatePassword($password, $returnErrors = false) {
+        $errors = [];
+
         if (empty($password)) {
-            return false;
+            $errors[] = 'Password is required';
+            return $returnErrors ? $errors : false;
         }
 
         // Minimum 8 characters
         if (strlen($password) < 8) {
-            return false;
+            $errors[] = 'Password must be at least 8 characters';
         }
 
         // Maximum 72 characters (bcrypt limitation)
         if (strlen($password) > 72) {
-            return false;
+            $errors[] = 'Password must be at most 72 characters';
         }
 
-        return true;
+        // SECURITY FIX: Require password complexity
+        if (!preg_match('/[a-z]/', $password)) {
+            $errors[] = 'Password must contain at least one lowercase letter';
+        }
+
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = 'Password must contain at least one uppercase letter';
+        }
+
+        if (!preg_match('/[0-9]/', $password)) {
+            $errors[] = 'Password must contain at least one number';
+        }
+
+        if ($returnErrors) {
+            return $errors;
+        }
+
+        return empty($errors);
     }
 
     /**

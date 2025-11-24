@@ -5,7 +5,10 @@
       "Bash(sudo tail:*)",
       "Bash(composer dump-autoload:*)",
       "Bash(php -r:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git push:*)",
+      "Bash(php -l:*)",
+      "Bash(./vendor/bin/phpunit:*)"
     ],
     "deny": [],
     "ask": []

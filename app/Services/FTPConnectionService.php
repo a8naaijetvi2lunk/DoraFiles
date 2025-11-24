@@ -2,20 +2,29 @@
 
 namespace App\Services;
 
-class FTPConnectionService {
-    private $pdo;
+/**
+ * Service for managing FTP connections
+ *
+ * Handles CRUD operations for user FTP connections with encryption,
+ * validation, and security checks.
+ */
+class FTPConnectionService
+{
+    private \PDO $pdo;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->pdo = db();
     }
 
     /**
      * Get all FTP connections for a user
      *
-     * @param int $userId
-     * @return array
+     * @param int $userId User ID
+     * @return array List of connections with decrypted display fields
      */
-    public function getUserConnections($userId) {
+    public function getUserConnections(int $userId): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT id, connection_name, ftp_host, ftp_port, ftp_username, ftp_base_path,
                    is_default, last_used_at, created_at, updated_at
@@ -41,11 +50,12 @@ class FTPConnectionService {
     /**
      * Get a specific FTP connection with decrypted credentials
      *
-     * @param int $connectionId
-     * @param int $userId
-     * @return array|null
+     * @param int $connectionId Connection ID
+     * @param int $userId User ID for authorization
+     * @return array|null Connection data with decrypted fields or null if not found
      */
-    public function getConnection($connectionId, $userId) {
+    public function getConnection(int $connectionId, int $userId): ?array
+    {
         $stmt = $this->pdo->prepare("
             SELECT id, user_id, connection_name, ftp_host, ftp_port, ftp_username,
                    ftp_password, ftp_base_path, is_default, last_used_at
@@ -73,17 +83,26 @@ class FTPConnectionService {
     /**
      * Create a new FTP connection with validation and security checks
      *
-     * @param int $userId
-     * @param string $connectionName
-     * @param string $ftpHost
-     * @param int $ftpPort
-     * @param string $ftpUsername
-     * @param string $ftpPassword
-     * @param string $ftpBasePath
-     * @param bool $isDefault
-     * @return int|string Returns connection ID on success, error message on failure
+     * @param int $userId User ID
+     * @param string $connectionName Display name for the connection
+     * @param string $ftpHost FTP server hostname
+     * @param int $ftpPort FTP server port
+     * @param string $ftpUsername FTP username
+     * @param string $ftpPassword FTP password
+     * @param string $ftpBasePath Base path on FTP server
+     * @param bool $isDefault Whether this is the default connection
+     * @return int|string Connection ID on success, error message on failure
      */
-    public function createConnection($userId, $connectionName, $ftpHost, $ftpPort, $ftpUsername, $ftpPassword, $ftpBasePath = '/', $isDefault = false) {
+    public function createConnection(
+        int $userId,
+        string $connectionName,
+        string $ftpHost,
+        int $ftpPort,
+        string $ftpUsername,
+        string $ftpPassword,
+        string $ftpBasePath = '/',
+        bool $isDefault = false
+    ): int|string {
         // Validate inputs
         $validation = $this->validateConnectionData($connectionName, $ftpHost, $ftpPort, $ftpUsername, $ftpPassword, $ftpBasePath);
         if ($validation !== true) {
@@ -135,7 +154,7 @@ class FTPConnectionService {
                 $isDefault ? 1 : 0
             ]);
 
-            $connectionId = $this->pdo->lastInsertId();
+            $connectionId = (int) $this->pdo->lastInsertId();
 
             // Update user's active connection if this is default
             if ($isDefault) {
@@ -161,18 +180,28 @@ class FTPConnectionService {
     /**
      * Update an existing FTP connection
      *
-     * @param int $connectionId
-     * @param int $userId
-     * @param string $connectionName
-     * @param string $ftpHost
-     * @param int $ftpPort
-     * @param string $ftpUsername
-     * @param string|null $ftpPassword (null = keep existing)
-     * @param string $ftpBasePath
-     * @param bool $isDefault
-     * @return bool|string Returns true on success, error message on failure
+     * @param int $connectionId Connection ID
+     * @param int $userId User ID for authorization
+     * @param string $connectionName Display name for the connection
+     * @param string $ftpHost FTP server hostname
+     * @param int $ftpPort FTP server port
+     * @param string $ftpUsername FTP username
+     * @param string|null $ftpPassword FTP password (null to keep existing)
+     * @param string $ftpBasePath Base path on FTP server
+     * @param bool $isDefault Whether this is the default connection
+     * @return bool|string True on success, error message on failure
      */
-    public function updateConnection($connectionId, $userId, $connectionName, $ftpHost, $ftpPort, $ftpUsername, $ftpPassword, $ftpBasePath = '/', $isDefault = false) {
+    public function updateConnection(
+        int $connectionId,
+        int $userId,
+        string $connectionName,
+        string $ftpHost,
+        int $ftpPort,
+        string $ftpUsername,
+        ?string $ftpPassword,
+        string $ftpBasePath = '/',
+        bool $isDefault = false
+    ): bool|string {
         // Verify ownership
         $existing = $this->getConnection($connectionId, $userId);
         if (!$existing) {
@@ -259,11 +288,12 @@ class FTPConnectionService {
     /**
      * Delete an FTP connection
      *
-     * @param int $connectionId
-     * @param int $userId
-     * @return bool|string Returns true on success, error message on failure
+     * @param int $connectionId Connection ID
+     * @param int $userId User ID for authorization
+     * @return bool|string True on success, error message on failure
      */
-    public function deleteConnection($connectionId, $userId) {
+    public function deleteConnection(int $connectionId, int $userId): bool|string
+    {
         // Verify ownership
         $existing = $this->getConnection($connectionId, $userId);
         if (!$existing) {
@@ -315,11 +345,12 @@ class FTPConnectionService {
     /**
      * Switch active FTP connection
      *
-     * @param int $connectionId
-     * @param int $userId
-     * @return bool|string Returns true on success, error message on failure
+     * @param int $connectionId Connection ID to switch to
+     * @param int $userId User ID for authorization
+     * @return bool|string True on success, error message on failure
      */
-    public function switchConnection($connectionId, $userId) {
+    public function switchConnection(int $connectionId, int $userId): bool|string
+    {
         // Verify ownership
         $conn = $this->getConnection($connectionId, $userId);
         if (!$conn) {
@@ -358,15 +389,16 @@ class FTPConnectionService {
     }
 
     /**
-     * Test FTP connection
+     * Test FTP connection credentials
      *
-     * @param string $ftpHost
-     * @param int $ftpPort
-     * @param string $ftpUsername
-     * @param string $ftpPassword
-     * @return bool|string Returns true on success, error message on failure
+     * @param string $ftpHost FTP server hostname
+     * @param int $ftpPort FTP server port
+     * @param string $ftpUsername FTP username
+     * @param string $ftpPassword FTP password
+     * @return bool|string True on success, error message on failure
      */
-    private function testConnection($ftpHost, $ftpPort, $ftpUsername, $ftpPassword) {
+    private function testConnection(string $ftpHost, int $ftpPort, string $ftpUsername, string $ftpPassword): bool|string
+    {
         $timeout = (int)env('FTP_TIMEOUT', 10);
 
         $conn = @ftp_connect($ftpHost, $ftpPort, $timeout);
@@ -387,15 +419,22 @@ class FTPConnectionService {
     /**
      * Validate connection data
      *
-     * @param string $connectionName
-     * @param string $ftpHost
-     * @param int $ftpPort
-     * @param string $ftpUsername
-     * @param string $ftpPassword
-     * @param string $ftpBasePath
-     * @return bool|string Returns true if valid, error message otherwise
+     * @param string $connectionName Connection display name
+     * @param string $ftpHost FTP server hostname
+     * @param int $ftpPort FTP server port
+     * @param string $ftpUsername FTP username
+     * @param string $ftpPassword FTP password
+     * @param string $ftpBasePath Base path on FTP server
+     * @return bool|string True if valid, error message otherwise
      */
-    private function validateConnectionData($connectionName, $ftpHost, $ftpPort, $ftpUsername, $ftpPassword, $ftpBasePath) {
+    private function validateConnectionData(
+        string $connectionName,
+        string $ftpHost,
+        int $ftpPort,
+        string $ftpUsername,
+        string $ftpPassword,
+        string $ftpBasePath
+    ): bool|string {
         // Validate connection name
         if (empty($connectionName) || strlen($connectionName) > 100) {
             return 'Connection name must be between 1 and 100 characters';
@@ -407,14 +446,8 @@ class FTPConnectionService {
             return 'Invalid FTP host';
         }
 
-        // Prevent SSRF by blocking private IPs (optional, depending on your needs)
-        // Uncomment if you want to block internal network access
-        // if (filter_var($ftpHost, FILTER_VALIDATE_IP) && !filter_var($ftpHost, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-        //     return 'Private IP addresses are not allowed';
-        // }
-
         // Validate port
-        if (!is_numeric($ftpPort) || $ftpPort < 1 || $ftpPort > 65535) {
+        if ($ftpPort < 1 || $ftpPort > 65535) {
             return 'FTP port must be between 1 and 65535';
         }
 

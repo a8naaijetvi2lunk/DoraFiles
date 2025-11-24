@@ -41,17 +41,30 @@ if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     if (isset($_FILES['file']['error'])) {
         switch ($_FILES['file']['error']) {
             case UPLOAD_ERR_INI_SIZE:
+                $maxUpload = ini_get('upload_max_filesize');
+                $maxPost = ini_get('post_max_size');
+                $errorMsg = "Le fichier dépasse la limite d'upload du serveur (upload_max_filesize: {$maxUpload}, post_max_size: {$maxPost}). Veuillez contacter l'administrateur pour augmenter ces limites.";
+                break;
             case UPLOAD_ERR_FORM_SIZE:
-                $errorMsg = 'File is too large';
+                $errorMsg = 'Le fichier dépasse la limite MAX_FILE_SIZE spécifiée dans le formulaire HTML';
                 break;
             case UPLOAD_ERR_PARTIAL:
-                $errorMsg = 'File was only partially uploaded';
+                $errorMsg = 'Le fichier n\'a été que partiellement uploadé. Vérifiez votre connexion internet.';
                 break;
             case UPLOAD_ERR_NO_FILE:
-                $errorMsg = 'No file was uploaded';
+                $errorMsg = 'Aucun fichier n\'a été uploadé';
+                break;
+            case UPLOAD_ERR_NO_TMP_DIR:
+                $errorMsg = 'Erreur serveur : dossier temporaire manquant';
+                break;
+            case UPLOAD_ERR_CANT_WRITE:
+                $errorMsg = 'Erreur serveur : impossible d\'écrire le fichier sur le disque';
+                break;
+            case UPLOAD_ERR_EXTENSION:
+                $errorMsg = 'Une extension PHP a bloqué l\'upload du fichier';
                 break;
             default:
-                $errorMsg = 'Upload error occurred';
+                $errorMsg = "Erreur d'upload inconnue (code: {$_FILES['file']['error']})";
         }
     }
     http_response_code(400);
@@ -62,6 +75,32 @@ if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
 $uploadedFile = $_FILES['file'];
 $fileName = basename($uploadedFile['name']);
 $tmpPath = $uploadedFile['tmp_name'];
+
+// SECURITY FIX: Check extension FIRST to prevent double extension bypass (e.g., file.php.png)
+$dangerousExtensions = ['.php', '.phtml', '.php3', '.php4', '.php5', '.phar', '.exe', '.bat', '.cmd', '.sh', '.js', '.jar', '.py', '.pl', '.cgi', '.htaccess'];
+$fileExtension = strtolower(substr($fileName, strrpos($fileName, '.')));
+
+// Additional check: block multiple extensions (file.php.txt)
+$allExtensions = [];
+$parts = explode('.', $fileName);
+if (count($parts) > 2) {
+    // Check all extensions in multi-dot filenames
+    for ($i = 1; $i < count($parts); $i++) {
+        $allExtensions[] = '.' . strtolower($parts[$i]);
+    }
+} else {
+    $allExtensions[] = $fileExtension;
+}
+
+foreach ($allExtensions as $ext) {
+    if (in_array($ext, $dangerousExtensions)) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'Extension de fichier interdite pour des raisons de sécurité: ' . $ext
+        ]);
+        exit;
+    }
+}
 
 // Validate file type to prevent malicious uploads
 $allowedMimeTypes = explode(',', env('ALLOWED_FILE_TYPES', 'image/,video/,audio/,application/pdf,application/zip,text/'));
@@ -82,17 +121,6 @@ if (!$isAllowed) {
     echo json_encode([
         'error' => 'Type de fichier non autorisé: ' . $detectedMimeType,
         'allowed_types' => $allowedMimeTypes
-    ]);
-    exit;
-}
-
-// Additional check: block executable extensions
-$dangerousExtensions = ['.php', '.phtml', '.php3', '.php4', '.php5', '.phar', '.exe', '.bat', '.cmd', '.sh', '.js', '.jar'];
-$fileExtension = strtolower(substr($fileName, strrpos($fileName, '.')));
-if (in_array($fileExtension, $dangerousExtensions)) {
-    http_response_code(400);
-    echo json_encode([
-        'error' => 'Extension de fichier interdite pour des raisons de sécurité: ' . $fileExtension
     ]);
     exit;
 }

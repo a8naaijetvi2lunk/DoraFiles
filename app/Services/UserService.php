@@ -2,20 +2,29 @@
 
 namespace App\Services;
 
-class UserService {
-    private $pdo;
+/**
+ * Service for user profile management
+ *
+ * Handles user profile operations, statistics, account updates,
+ * and account deletion with security validations.
+ */
+class UserService
+{
+    private \PDO $pdo;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->pdo = db();
     }
 
     /**
      * Get user profile data with statistics
      *
-     * @param int $userId
-     * @return array|null
+     * @param int $userId User ID
+     * @return array|null User profile data or null if not found
      */
-    public function getProfile($userId) {
+    public function getProfile(int $userId): ?array
+    {
         $stmt = $this->pdo->prepare("
             SELECT id, email, created_at, updated_at, last_login_at, last_login_ip
             FROM users
@@ -35,12 +44,13 @@ class UserService {
     }
 
     /**
-     * Get user statistics
+     * Get user statistics (links, downloads, connections, activities)
      *
-     * @param int $userId
-     * @return array
+     * @param int $userId User ID
+     * @return array Statistics array
      */
-    public function getUserStatistics($userId) {
+    public function getUserStatistics(int $userId): array
+    {
         // Count active shared links
         $linksStmt = $this->pdo->prepare("
             SELECT COUNT(*) as total_links,
@@ -70,21 +80,22 @@ class UserService {
         $activityData = $activityStmt->fetch();
 
         return [
-            'total_links' => $linksData['total_links'] ?? 0,
-            'total_downloads' => $linksData['total_downloads'] ?? 0,
-            'total_connections' => $ftpData['total_connections'] ?? 0,
-            'recent_activities' => $activityData['recent_activities'] ?? 0
+            'total_links' => (int) ($linksData['total_links'] ?? 0),
+            'total_downloads' => (int) ($linksData['total_downloads'] ?? 0),
+            'total_connections' => (int) ($ftpData['total_connections'] ?? 0),
+            'recent_activities' => (int) ($activityData['recent_activities'] ?? 0)
         ];
     }
 
     /**
      * Update user email with validation
      *
-     * @param int $userId
-     * @param string $newEmail
-     * @return bool|string Returns true on success, error message on failure
+     * @param int $userId User ID
+     * @param string $newEmail New email address
+     * @return bool|string True on success, error message on failure
      */
-    public function updateEmail($userId, $newEmail) {
+    public function updateEmail(int $userId, string $newEmail): bool|string
+    {
         // Validate email format
         if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
             return 'Invalid email format';
@@ -119,12 +130,13 @@ class UserService {
     /**
      * Update user password with security checks
      *
-     * @param int $userId
-     * @param string $currentPassword
-     * @param string $newPassword
-     * @return bool|string Returns true on success, error message on failure
+     * @param int $userId User ID
+     * @param string $currentPassword Current password for verification
+     * @param string $newPassword New password
+     * @return bool|string True on success, error message on failure
      */
-    public function updatePassword($userId, $currentPassword, $newPassword) {
+    public function updatePassword(int $userId, string $currentPassword, string $newPassword): bool|string
+    {
         // Verify current password
         $stmt = $this->pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
         $stmt->execute([$userId]);
@@ -176,11 +188,12 @@ class UserService {
     /**
      * Update last login timestamp and IP
      *
-     * @param int $userId
-     * @param string $ipAddress
+     * @param int $userId User ID
+     * @param string|null $ipAddress Client IP address
      * @return void
      */
-    public function updateLastLogin($userId, $ipAddress) {
+    public function updateLastLogin(int $userId, ?string $ipAddress): void
+    {
         // Validate and sanitize IP address
         $ipAddress = filter_var($ipAddress, FILTER_VALIDATE_IP) ? $ipAddress : null;
 
@@ -195,11 +208,12 @@ class UserService {
     /**
      * Verify user password
      *
-     * @param int $userId
-     * @param string $password
-     * @return bool
+     * @param int $userId User ID
+     * @param string $password Password to verify
+     * @return bool True if password matches
      */
-    public function verifyPassword($userId, $password) {
+    public function verifyPassword(int $userId, string $password): bool
+    {
         $stmt = $this->pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
@@ -214,11 +228,12 @@ class UserService {
     /**
      * Delete user account and all associated data
      *
-     * @param int $userId
+     * @param int $userId User ID
      * @param string $password Password confirmation required
-     * @return bool|string Returns true on success, error message on failure
+     * @return bool|string True on success, error message on failure
      */
-    public function deleteAccount($userId, $password) {
+    public function deleteAccount(int $userId, string $password): bool|string
+    {
         // Verify password
         $stmt = $this->pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
         $stmt->execute([$userId]);

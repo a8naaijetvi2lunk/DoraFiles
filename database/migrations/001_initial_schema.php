@@ -50,7 +50,8 @@ try {
             INDEX idx_token (token),
             INDEX idx_user_id (user_id),
             INDEX idx_ftp_connection_id (ftp_connection_id),
-            INDEX idx_expires_at (expires_at)
+            INDEX idx_expires_at (expires_at),
+            INDEX idx_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
@@ -65,11 +66,44 @@ try {
             attempts INT DEFAULT 1,
             window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_ip_action (ip_address, action),
-            INDEX idx_window (window_start)
+            INDEX idx_window (window_start),
+            INDEX idx_rate_limit_check (ip_address, action, window_start)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
     echo "✓ Created rate_limits table\n";
+
+    // Create zip_jobs table for async ZIP generation with progress tracking
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS zip_jobs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            token VARCHAR(64) UNIQUE NOT NULL,
+            folder_path TEXT NOT NULL,
+            folder_name VARCHAR(255) NOT NULL,
+            status ENUM('pending', 'processing', 'completed', 'failed') DEFAULT 'pending',
+            progress_percent TINYINT UNSIGNED DEFAULT 0,
+            total_files INT DEFAULT 0,
+            processed_files INT DEFAULT 0,
+            total_size_bytes BIGINT DEFAULT 0,
+            processed_size_bytes BIGINT DEFAULT 0,
+            zip_file_path TEXT NULL,
+            error_message TEXT NULL,
+            estimated_time_remaining INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            started_at TIMESTAMP NULL,
+            completed_at TIMESTAMP NULL,
+            expires_at TIMESTAMP NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            INDEX idx_token (token),
+            INDEX idx_user_status (user_id, status),
+            INDEX idx_expires_at (expires_at),
+            INDEX idx_status (status),
+            INDEX idx_expires_status (expires_at, status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    echo "✓ Created zip_jobs table\n";
 
     echo "\nMigration completed successfully!\n";
 

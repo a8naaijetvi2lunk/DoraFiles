@@ -3,6 +3,7 @@
 .env.backup
 .env.production
 .env.local
+.claude
 
 # Composer
 /vendor/
@@ -36,6 +37,7 @@ composer.lock
 # Cache
 /storage/cache/
 *.cache
+.phpunit.cache/
 
 # Backups
 *.sql

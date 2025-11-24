@@ -87,13 +87,13 @@
                 <input type="text" id="connection_name" name="connection_name" required maxlength="100" placeholder="Ex: Serveur Principal">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 120px; gap: 16px;">
+            <div class="form-row">
                 <div class="form-group">
                     <label for="ftp_host">Hôte FTP *</label>
                     <input type="text" id="ftp_host" name="ftp_host" required placeholder="ftp.example.com">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group form-group-small">
                     <label for="ftp_port">Port *</label>
                     <input type="number" id="ftp_port" name="ftp_port" value="21" required min="1" max="65535">
                 </div>
@@ -116,8 +116,8 @@
             </div>
 
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" name="is_default" style="width: auto;">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="is_default" class="checkbox-input">
                     <span>Définir comme connexion active</span>
                 </label>
             </div>
@@ -147,13 +147,13 @@
                 <input type="text" id="edit_connection_name" name="connection_name" required maxlength="100">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 120px; gap: 16px;">
+            <div class="form-row">
                 <div class="form-group">
                     <label for="edit_ftp_host">Hôte FTP *</label>
                     <input type="text" id="edit_ftp_host" name="ftp_host" required>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group form-group-small">
                     <label for="edit_ftp_port">Port *</label>
                     <input type="number" id="edit_ftp_port" name="ftp_port" required min="1" max="65535">
                 </div>
@@ -176,8 +176,8 @@
             </div>
 
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="edit_is_default" name="is_default" style="width: auto;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="edit_is_default" name="is_default" class="checkbox-input">
                     <span>Définir comme connexion active</span>
                 </label>
             </div>
@@ -191,91 +191,11 @@
 </div>
 
 <!-- Delete Confirmation Form -->
-<form id="deleteConnectionForm" method="POST" style="display: none;">
+<form id="deleteConnectionForm" method="POST" class="hidden">
     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
     <input type="hidden" name="action" value="delete_ftp_connection">
     <input type="hidden" id="delete_connection_id" name="connection_id">
 </form>
-
-<style>
-.ftp-connections-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
-    margin-top: 24px;
-}
-
-.ftp-connection-card {
-    padding: 24px;
-    background: var(--bg-body);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    position: relative;
-    transition: all 0.2s;
-}
-
-.ftp-connection-card:hover {
-    border-color: var(--border-hover);
-}
-
-.ftp-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 16px;
-}
-
-.ftp-badge-active {
-    background: rgba(99, 102, 241, 0.15);
-    color: var(--primary);
-}
-
-.ftp-connection-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 20px;
-}
-
-.ftp-connection-details {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.ftp-detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-    gap: 12px;
-}
-
-.ftp-detail-label {
-    color: var(--text-muted);
-    font-weight: 500;
-    min-width: 80px;
-}
-
-.ftp-detail-value {
-    color: var(--text-secondary);
-    text-align: right;
-    word-break: break-all;
-}
-
-.ftp-connection-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-}
-</style>
 
 <script>
 function openAddConnectionModal() {

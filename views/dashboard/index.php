@@ -51,7 +51,7 @@
                 <?php foreach ($recentLinks as $link): ?>
                     <tr>
                         <td>
-                            <div style="font-weight: 500;"><?= e($link['file_name']) ?></div>
+                            <div class="font-medium"><?= e($link['file_name']) ?></div>
                         </td>
                         <td>
                             <code class="code-badge">
@@ -63,11 +63,11 @@
                             <?php if ($link['expires_at']): ?>
                                 <?= date('d/m/Y H:i', strtotime($link['expires_at'])) ?>
                             <?php else: ?>
-                                <span style="color: #666;">Jamais</span>
+                                <span class="text-muted">Jamais</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <span style="font-weight: 500;"><?= $link['download_count'] ?></span>
+                            <span class="font-medium"><?= $link['download_count'] ?></span>
                         </td>
                         <td>
                             <button onclick="copyToClipboard('<?= env('APP_URL') ?>/dl/<?= e($link['token']) ?>')" class="btn btn-sm btn-secondary">

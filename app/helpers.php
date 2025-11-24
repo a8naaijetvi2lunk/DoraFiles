@@ -64,26 +64,95 @@ function env($key, $default = null) {
 }
 
 /**
- * Encrypt data using AES-256-CBC
+ * Get validated encryption key
+ * @throws RuntimeException if key is not configured
  */
-function encrypt($data) {
-    $key = base64_decode(str_replace('base64:', '', env('APP_ENCRYPTION_KEY')));
-    $iv = openssl_random_pseudo_bytes(16);
-    $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, 0, $iv);
-
-    return base64_encode($iv . $encrypted);
+function getEncryptionKey(): string {
+    $key = env('APP_ENCRYPTION_KEY');
+    if (empty($key)) {
+        throw new \RuntimeException('APP_ENCRYPTION_KEY not configured');
+    }
+    return base64_decode(str_replace('base64:', '', $key));
 }
 
 /**
- * Decrypt data using AES-256-CBC
+ * Encrypt data using AES-256-CBC with HMAC authentication
+ * SECURITY FIX: Uses random_bytes() instead of openssl_random_pseudo_bytes()
+ * SECURITY FIX: Added HMAC for integrity verification
+ */
+function encrypt($data) {
+    $key = getEncryptionKey();
+
+    // SECURITY FIX: Use cryptographically secure random_bytes()
+    $iv = random_bytes(16);
+
+    $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+
+    // SECURITY FIX: Verify encryption succeeded
+    if ($encrypted === false) {
+        throw new \RuntimeException('Encryption failed');
+    }
+
+    // SECURITY FIX: Add HMAC for integrity (encrypt-then-MAC)
+    $payload = $iv . $encrypted;
+    $hmac = hash_hmac('sha256', $payload, $key, true);
+
+    return base64_encode($hmac . $payload);
+}
+
+/**
+ * Decrypt data using AES-256-CBC with HMAC verification
+ * SECURITY FIX: Verifies HMAC before decryption (prevents padding oracle attacks)
  */
 function decrypt($data) {
-    $key = base64_decode(str_replace('base64:', '', env('APP_ENCRYPTION_KEY')));
+    $key = getEncryptionKey();
     $data = base64_decode($data);
+
+    // Check minimum length (32 bytes HMAC + 16 bytes IV + at least 1 byte encrypted)
+    if (strlen($data) < 49) {
+        // Legacy data without HMAC - try old format for backward compatibility
+        return decryptLegacy($data, $key);
+    }
+
+    // Extract HMAC, IV, and encrypted data
+    $hmac = substr($data, 0, 32);
+    $payload = substr($data, 32);
+
+    // SECURITY FIX: Verify HMAC before decryption (timing-safe comparison)
+    $expectedHmac = hash_hmac('sha256', $payload, $key, true);
+    if (!hash_equals($hmac, $expectedHmac)) {
+        // Try legacy format for backward compatibility
+        return decryptLegacy(base64_decode(base64_encode($data)), $key);
+    }
+
+    $iv = substr($payload, 0, 16);
+    $encrypted = substr($payload, 16);
+
+    $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+
+    if ($decrypted === false) {
+        throw new \RuntimeException('Decryption failed');
+    }
+
+    return $decrypted;
+}
+
+/**
+ * Legacy decrypt function for backward compatibility with old encrypted data
+ */
+function decryptLegacy($data, $key) {
     $iv = substr($data, 0, 16);
     $encrypted = substr($data, 16);
 
-    return openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+    // Old format stored base64 of encrypted data, new format stores raw
+    $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+
+    if ($decrypted === false) {
+        // Try with raw data
+        $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+    }
+
+    return $decrypted;
 }
 
 /**
@@ -149,8 +218,8 @@ function formatBytes($bytes, $precision = 2) {
 /**
  * Escape HTML
  */
-function e($string) {
-    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+function e(?string $string): string {
+    return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 /**

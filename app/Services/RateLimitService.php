@@ -2,21 +2,40 @@
 
 namespace App\Services;
 
-class RateLimitService {
-    private $pdo;
-    private $limit;
-    private $windowMinutes;
+/**
+ * Service for rate limiting requests
+ *
+ * Provides IP-based rate limiting to prevent brute force attacks
+ * and abuse of sensitive endpoints.
+ */
+class RateLimitService
+{
+    private \PDO $pdo;
+    private int $limit;
+    private int $windowMinutes;
 
-    public function __construct($limit = null, $windowMinutes = 1) {
+    /**
+     * Create a new rate limit service
+     *
+     * @param int|null $limit Maximum attempts allowed (defaults to env DOWNLOAD_RATE_LIMIT or 50)
+     * @param int $windowMinutes Time window in minutes
+     */
+    public function __construct(?int $limit = null, int $windowMinutes = 1)
+    {
         $this->pdo = db();
         $this->limit = $limit ?? (int) env('DOWNLOAD_RATE_LIMIT', 50);
         $this->windowMinutes = $windowMinutes;
     }
 
     /**
-     * Check if IP is rate limited
+     * Check if request is allowed (not rate limited)
+     *
+     * @param string $ipAddress Client IP address
+     * @param string $action Action being rate limited (e.g., 'download', 'login')
+     * @return bool True if allowed, false if rate limited
      */
-    public function check($ipAddress, $action = 'download') {
+    public function check(string $ipAddress, string $action = 'download'): bool
+    {
         // Clean old entries
         $this->cleanOldEntries();
 
@@ -42,9 +61,14 @@ class RateLimitService {
     }
 
     /**
-     * Increment rate limit counter
+     * Increment rate limit counter for an IP/action pair
+     *
+     * @param string $ipAddress Client IP address
+     * @param string $action Action being tracked
+     * @return void
      */
-    private function increment($ipAddress, $action) {
+    private function increment(string $ipAddress, string $action): void
+    {
         // Try to update existing entry
         $stmt = $this->pdo->prepare("
             UPDATE rate_limits
@@ -68,9 +92,12 @@ class RateLimitService {
     }
 
     /**
-     * Clean old entries
+     * Clean expired rate limit entries
+     *
+     * @return void
      */
-    private function cleanOldEntries() {
+    private function cleanOldEntries(): void
+    {
         $stmt = $this->pdo->prepare("
             DELETE FROM rate_limits
             WHERE window_start < DATE_SUB(NOW(), INTERVAL ? MINUTE)
@@ -81,8 +108,14 @@ class RateLimitService {
 
     /**
      * Get client IP address with spoofing protection
+     *
+     * Only trusts proxy headers if the immediate client IP
+     * is in the configured TRUSTED_PROXIES list.
+     *
+     * @return string Client IP address (defaults to '0.0.0.0' if invalid)
      */
-    public static function getClientIP() {
+    public static function getClientIP(): string
+    {
         $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         // Only trust proxy headers if behind verified reverse proxy
@@ -102,7 +135,6 @@ class RateLimitService {
 
         // Validate IP format to prevent injection
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-            // Log suspicious activity
             error_log("Invalid IP format detected: " . var_export($ip, true));
             return '0.0.0.0';
         }

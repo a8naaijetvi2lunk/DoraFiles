@@ -7,6 +7,7 @@
 **Un système moderne de gestion de fichiers FTP via interface web**
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://php.net)
+[![PHPUnit](https://img.shields.io/badge/PHPUnit-10.5-blue.svg)](https://phpunit.de)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -26,15 +27,17 @@ Dora Files est une application web moderne qui permet de gérer vos fichiers FTP
 - ✅ **Interface moderne** - Design sombre avec thème Inter & Tailwind-inspired
 - 📁 **Navigateur de fichiers** - Parcourez vos fichiers FTP comme un explorateur local
 - ⬆️ **Upload/Download** - Téléchargement de fichiers avec barre de progression
+- 📦 **ZIP Asynchrone** - Génération de ZIP en arrière-plan avec suivi de progression en temps réel
 - 🔗 **Liens de partage** - Créez des liens de téléchargement avec expiration
 - 👤 **Multi-utilisateurs** - Gestion complète des comptes utilisateurs
 
 ### 🔒 Sécurité
 - 🔐 **Authentification 2FA** - TOTP avec Google Authenticator
 - 🛡️ **Protection CSRF** - Tous les formulaires protégés
-- 🔑 **Chiffrement** - Credentials FTP chiffrés (AES-256-CBC)
-- 🚦 **Rate Limiting** - Protection contre les abus
+- 🔑 **Chiffrement AES-256-CBC + HMAC** - Credentials FTP chiffrés avec vérification d'intégrité
+- 🚦 **Rate Limiting** - Protection contre les abus et force brute
 - 📝 **Journal d'activité** - Traçabilité complète des actions
+- 🛡️ **Headers de sécurité** - CSP, X-Frame-Options, HSTS, etc.
 
 ### 🎨 Gestion avancée
 - 🌐 **Multi-FTP** - Gérez plusieurs connexions FTP par utilisateur
@@ -114,6 +117,11 @@ FLUSH PRIVILEGES;
 ### 3. Exécuter les migrations
 
 ```bash
+php bin/run-migrations.php
+```
+
+Ou manuellement :
+```bash
 php database/migrations/001_initial_schema.php
 php database/migrations/002_profile_feature.php
 php database/migrations/003_two_factor_auth.php
@@ -132,24 +140,32 @@ php bin/create-test-user.php
 ```
 dora-files/
 ├── app/                    # Logic applicative
-│   ├── Services/          # Services métier
+│   ├── Services/          # Services métier (Auth, FTP, Link, etc.)
 │   ├── Security/          # Middleware de sécurité
 │   └── helpers.php        # Fonctions utilitaires
+├── api/                   # Endpoints API (ZIP worker, etc.)
 ├── bin/                   # Scripts utilitaires
 ├── config/                # Configurations (cron, logrotate)
 ├── database/              # Migrations SQL
 │   └── migrations/
+├── docs/                  # Documentation
+│   └── CHANGELOG.md
 ├── public/                # Assets publics (CSS, images)
 ├── setup/                 # Assistant d'installation
 ├── storage/               # Logs et données
 │   └── logs/
+├── tests/                 # Tests PHPUnit
+│   ├── Unit/             # Tests unitaires
+│   └── Feature/          # Tests fonctionnels
 ├── vendor/                # Dépendances Composer
 ├── views/                 # Templates PHP
 │   ├── auth/             # Pages d'authentification
 │   ├── dashboard/        # Pages dashboard
+│   ├── partials/         # Composants réutilisables
 │   └── profile/          # Pages profil utilisateur
 ├── .env.example          # Configuration exemple
 ├── composer.json         # Dépendances PHP
+├── phpunit.xml           # Configuration PHPUnit
 └── index.php            # Point d'entrée
 ```
 
@@ -180,17 +196,51 @@ Dora Files intègre plusieurs couches de sécurité :
 - ✅ Requêtes SQL préparées (PDO)
 - ✅ Échappement HTML automatique
 - ✅ Rate limiting sur les téléchargements et authentification
-- ✅ Chiffrement AES-256-CBC pour les credentials FTP
-- ✅ Headers de sécurité (CSP, X-Frame-Options, etc.)
+- ✅ Chiffrement AES-256-CBC + HMAC pour les credentials FTP
+- ✅ Headers de sécurité (CSP, X-Frame-Options, X-XSS-Protection, HSTS, etc.)
 - ✅ Validation stricte des entrées utilisateur
-- ✅ Protection contre path traversal
+- ✅ Protection contre path traversal et injection de commandes
 - ✅ Authentification à deux facteurs (TOTP)
 - ✅ Codes de backup chiffrés (bcrypt)
+- ✅ Régénération d'ID de session (protection fixation)
+- ✅ Validation de mots de passe robuste (min 8 chars, majuscule, minuscule, chiffre)
 
 ### Rapporter une vulnérabilité
 
 Si vous découvrez une faille de sécurité, merci de nous la signaler à :
 📧 **noreply@yvescharvis.fr**
+
+---
+
+## 🧪 Tests
+
+Dora Files utilise PHPUnit pour les tests unitaires.
+
+### Exécuter les tests
+
+```bash
+# Exécuter tous les tests
+composer test
+
+# Avec sortie détaillée
+./vendor/bin/phpunit --testdox
+
+# Avec couverture de code
+composer test-coverage
+```
+
+### Structure des tests
+
+```
+tests/
+├── Unit/
+│   ├── HelpersTest.php              # Tests des fonctions utilitaires
+│   └── Security/
+│       └── SecurityMiddlewareTest.php  # Tests de sécurité
+└── Feature/                          # Tests fonctionnels (à venir)
+```
+
+**Couverture actuelle :** 34 tests, 66 assertions
 
 ---
 
@@ -203,6 +253,9 @@ Configurez des tâches cron pour la maintenance :
 ```bash
 # Nettoyage quotidien (2h du matin)
 0 2 * * * /usr/bin/php /path/to/dora-files/bin/cleanup.php
+
+# Nettoyage des ZIP jobs expirés (2h10 du matin)
+10 2 * * * /usr/bin/php /path/to/dora-files/bin/cleanup-zip-jobs.php
 
 # Rotation des logs (2h15 du matin)
 15 2 * * * /usr/bin/php /path/to/dora-files/bin/cleanup-logs.php
@@ -295,17 +348,26 @@ Les contributions sont les bienvenues ! Consultez [CONTRIBUTING.md](CONTRIBUTING
 
 ## 📝 Changelog
 
-Consultez [CHANGELOG.md](CHANGELOG.md) pour voir l'historique des versions.
+Consultez [docs/CHANGELOG.md](docs/CHANGELOG.md) pour voir l'historique des versions.
 
-### Version actuelle : 2.0.0
+### Version actuelle : 2.1.0
 
-**Nouveautés :**
+**Nouveautés v2.1.0 :**
+- 🔒 Corrections de sécurité majeures (injection, IDOR, fixation de session)
+- 🔑 Chiffrement HMAC pour l'intégrité des données
+- ⚡ Index de performance SQL optimisés
+- 🧪 Suite de tests PHPUnit (34 tests)
+- 🎨 Harmonisation UI/UX complète
+- 📝 Classes utilitaires CSS type Tailwind
+
+**Nouveautés v2.0.0 :**
 - ✨ Système d'installation automatique (WordPress-style)
 - 🔐 Authentification à deux facteurs (2FA/TOTP)
 - 📊 Dashboard utilisateur avec statistiques
 - 🌐 Support multi-connexions FTP
 - 📝 Journal d'activité complet
 - 🎨 Interface moderne et responsive
+- 📦 Téléchargement ZIP asynchrone avec progression en temps réel
 
 ---
 

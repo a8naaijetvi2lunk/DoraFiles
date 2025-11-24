@@ -1,7 +1,7 @@
 <div class="card">
     <h3 class="card-title">Modifier l'email</h3>
 
-    <form method="POST" style="max-width: 500px;">
+    <form method="POST" class="max-w-md">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <input type="hidden" name="action" value="update_email">
 
@@ -18,7 +18,7 @@
 <div class="card">
     <h3 class="card-title">Modifier le mot de passe</h3>
 
-    <form method="POST" style="max-width: 500px;">
+    <form method="POST" class="max-w-md">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <input type="hidden" name="action" value="update_password">
 
@@ -106,83 +106,6 @@
         </form>
     </div>
 </div>
-
-<style>
-.settings-danger-zone {
-    border-color: rgba(239, 68, 68, 0.3);
-    background: var(--bg-card);
-}
-
-.danger-zone-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 24px;
-    margin-top: 20px;
-}
-
-.danger-zone-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--danger);
-    margin-bottom: 8px;
-}
-
-.danger-zone-text {
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.delete-warning-box {
-    display: flex;
-    gap: 16px;
-    padding: 20px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: var(--radius-md);
-    margin-bottom: 24px;
-}
-
-.delete-warning-icon {
-    font-size: 32px;
-    flex-shrink: 0;
-}
-
-.delete-warning-content h4 {
-    color: var(--danger);
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.delete-warning-content p {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-
-.delete-warning-content ul {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-left: 20px;
-}
-
-.delete-warning-content li {
-    margin-bottom: 6px;
-}
-
-@media (max-width: 768px) {
-    .danger-zone-content {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .delete-warning-box {
-        flex-direction: column;
-    }
-}
-</style>
 
 <script>
 function openDeleteAccountModal() {

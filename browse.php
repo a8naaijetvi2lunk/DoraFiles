@@ -27,10 +27,10 @@ if (isset($_GET['switch_ftp']) && is_numeric($_GET['switch_ftp'])) {
         // Store in session temporarily for browsing
         $_SESSION['browse_ftp_connection_id'] = (int)$_GET['switch_ftp'];
 
-        // Update last_used_at
+        // Update last_used_at - SECURITY FIX: Use validated integer and add user_id check
         $pdo = db();
-        $stmt = $pdo->prepare("UPDATE ftp_connections SET last_used_at = NOW() WHERE id = ?");
-        $stmt->execute([$_GET['switch_ftp']]);
+        $stmt = $pdo->prepare("UPDATE ftp_connections SET last_used_at = NOW() WHERE id = ? AND user_id = ?");
+        $stmt->execute([(int)$_GET['switch_ftp'], $user['id']]);
 
         // Log activity
         $activityLog = new ActivityLogService();

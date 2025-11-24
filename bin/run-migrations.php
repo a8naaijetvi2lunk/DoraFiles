@@ -39,12 +39,12 @@ $migrations = [
     [
         'name' => '001 - Initial Schema',
         'file' => __DIR__ . '/../database/migrations/001_initial_schema.php',
-        'description' => 'Creates users, shared_links, rate_limits tables'
+        'description' => 'Creates users, shared_links, rate_limits, zip_jobs tables (with optimized indexes)'
     ],
     [
         'name' => '002 - Profile Feature',
         'file' => __DIR__ . '/../database/migrations/002_profile_feature.php',
-        'description' => 'Creates ftp_connections, activity_logs tables'
+        'description' => 'Creates ftp_connections, activity_logs tables (with optimized indexes)'
     ],
     [
         'name' => '003 - Two-Factor Auth',
@@ -72,9 +72,9 @@ echo str_repeat("─", 70) . "\n";
 $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 
 // Check migration 001
-$migration1Applied = in_array('users', $tables) && in_array('shared_links', $tables);
+$migration1Applied = in_array('users', $tables) && in_array('shared_links', $tables) && in_array('zip_jobs', $tables);
 $status1 = $migration1Applied ? colorize('✓ Applied', 'green') : colorize('✗ Pending', 'yellow');
-printf("%-35s %-30s %s\n", "001 - Initial Schema", $status1, "users, shared_links, rate_limits");
+printf("%-35s %-30s %s\n", "001 - Initial Schema", $status1, "users, shared_links, rate_limits, zip_jobs");
 
 // Check migration 002
 $migration2Applied = in_array('ftp_connections', $tables) && in_array('activity_logs', $tables);
